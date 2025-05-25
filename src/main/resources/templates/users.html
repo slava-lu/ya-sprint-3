@@ -69,32 +69,14 @@
     </thead>
     <!-- Тестовые данные для отображения-->
     <tbody>
-    <tr>
-        <td>1</td>
-        <td>Иван</td>
-        <td>Иванов</td>
-        <td>30</td>
-        <td>Да</td>
-        <td class="actions">
-            <button>Удалить</button>
-        </td>
-    </tr>
-    <tr>
-        <td>2</td>
-        <td>Пётр</td>
-        <td>Петров</td>
-        <td>25</td>
-        <td>Нет</td>
-        <td class="actions">
-            <button>Удалить</button>
-        </td>
-    </tr>
-    <tr>
-        <td>3</td>
-        <td>Мария</td>
-        <td>Сидорова</td>
-        <td>28</td>
-        <td>Да</td>
+
+    <!-- Цикл по пользователям из атрибута users-->
+    <tr th:each="user : ${users}">
+        <td th:text="${user.id}"/> <!-- Вставляем идентификаторы и остальные атрибуты-->
+        <td th:text="${user.firstName}"/>
+        <td th:text="${user.lastName}"/>
+        <td th:text="${user.age}"/>
+        <td th:text="${user.active ? 'Да' : 'Нет'}"/>
         <td class="actions">
             <button>Удалить</button>
         </td>
