@@ -78,7 +78,10 @@
         <td th:text="${user.age}"/>
         <td th:text="${user.active ? 'Да' : 'Нет'}"/>
         <td class="actions">
-            <button>Удалить</button>
+            <form th:action="@{/users/{id}(id=${user.id})}" method="post" style="display:inline;">
+                <input type="hidden" name="_method" value="delete">
+                <button type="submit">Удалить</button>
+            </form>
         </td>
     </tr>
     </tbody>
