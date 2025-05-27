@@ -1,18 +1,17 @@
 package com.example.blog.repository;
 
 import java.util.List;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import com.example.blog.model.User;
 
 @Repository
+@RequiredArgsConstructor
 public class JdbcNativeUserRepository implements UserRepository {
 
     private final JdbcTemplate jdbcTemplate;
-
-    public JdbcNativeUserRepository(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
 
     @Override
     public List<User> findAll() {
