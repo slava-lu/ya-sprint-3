@@ -15,6 +15,7 @@ public class Post {
     private String imageUrl;
     private String content;
     private int likesCount;
+    private int commentsCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
