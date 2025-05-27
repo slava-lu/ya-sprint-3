@@ -22,6 +22,9 @@ public class PostController {
             @RequestParam(value = "pageNumber", defaultValue = "0")   int pageNumber,
             Model model
     ) {
+        if (search != null) {
+            search = search.trim();
+        }
         Page<Post> paging = postService.findAll(search, pageNumber, pageSize);
         model.addAttribute("posts",  paging.getContent());
         model.addAttribute("paging", paging);
