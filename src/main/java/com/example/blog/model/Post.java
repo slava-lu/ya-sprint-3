@@ -3,6 +3,7 @@ package com.example.blog.model;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @AllArgsConstructor
@@ -18,6 +19,7 @@ public class Post {
     private int commentsCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private List<String> textParts = new ArrayList<>();
 
     private List<Tag> tags;
     private List<Comment> comments;

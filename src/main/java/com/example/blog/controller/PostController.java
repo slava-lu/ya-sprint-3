@@ -39,15 +39,28 @@ public class PostController {
     }
 
     @PostMapping(value = "/{id}", params = "_method=delete")
-    public String delete(@PathVariable Long id) {
+    public String delete(@PathVariable("id") Long id) {
         postService.deleteById(id);
         return "redirect:/posts";
     }
 
     @GetMapping("/{id}")
-    public String view(@PathVariable Long id, Model model) {
+    public String view(@PathVariable("id") Long id, Model model) {
         Post post = postService.findById(id);
         model.addAttribute("post", post);
         return "post";
     }
+    @PostMapping("/{id}/like")
+    public String like(
+            @PathVariable("id") Long id,
+            @RequestParam("like") boolean like
+    ) {
+        if (like) {
+            postService.incrementLikes(id);
+        } else {
+            postService.decrementLikes(id);
+        }
+        return "redirect:/posts/" + id;
+    }
+
 }

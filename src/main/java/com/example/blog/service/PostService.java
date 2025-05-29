@@ -6,8 +6,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-
 @Service
 @RequiredArgsConstructor
 public class PostService {
@@ -32,5 +30,28 @@ public class PostService {
 
     public void deleteById(Long id) {
         postRepository.deleteById(id);
+    }
+    public void incrementLikes(Long id) {
+        Post p = findById(id);
+        p.setLikesCount(p.getLikesCount() + 1);
+        update(p);
+    }
+
+    public void decrementLikes(Long id) {
+        Post p = findById(id);
+        p.setLikesCount(p.getLikesCount() - 1);
+        update(p);
+    }
+
+    public void saveComment(Long postId, String text) {
+        postRepository.saveComment(postId, text);
+    }
+
+    public void updateComment(Long commentId, String text) {
+        postRepository.updateComment(commentId, text);
+    }
+
+    public void deleteComment(Long commentId) {
+        postRepository.deleteComment(commentId);
     }
 }

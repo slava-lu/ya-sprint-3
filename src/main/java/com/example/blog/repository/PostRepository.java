@@ -10,4 +10,8 @@ public interface PostRepository {
     void save(Post post);
     void update(Post post);
     void deleteById(Long id);
+
+    void saveComment(Long postId, String text);
+    void updateComment(Long commentId, String text);
+    void deleteComment(Long commentId);
 }

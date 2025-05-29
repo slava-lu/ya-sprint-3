@@ -1,5 +1,6 @@
 package com.example.blog.repository;
 
+import com.example.blog.model.Comment;
 import com.example.blog.model.Post;
 import com.example.blog.model.Tag;
 import org.springframework.data.domain.Page;
@@ -33,7 +34,7 @@ public class JdbcNativePostRepository implements PostRepository {
                     " JOIN post_tags pt ON p.id = pt.post_id" +
                             " JOIN tags t ON pt.tag_id = t.id" +
                             " WHERE t.name = ?";
-            params.add(search);
+            params.add(search.trim());
         }
 
         Integer total = jdbcTemplate.queryForObject(
@@ -43,13 +44,10 @@ public class JdbcNativePostRepository implements PostRepository {
         );
 
         String selectSql =
-                "SELECT DISTINCT "
-                        + "  p.id, p.title, p.image_url, p.content, p.like_count, "
-                        + "  p.created_at, p.updated_at, "
-                        + "  (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) AS comments_count"
-                        + baseSql
-                        + " ORDER BY p.created_at DESC"
-                        + " LIMIT ? OFFSET ?";
+                "SELECT DISTINCT p.id, p.title, p.image_url, p.content, p.like_count, p.created_at, p.updated_at" +
+                        baseSql +
+                        " ORDER BY p.created_at DESC" +
+                        " LIMIT ? OFFSET ?";
 
         params.add(pageSize);
         params.add(pageNumber * pageSize);
@@ -58,18 +56,16 @@ public class JdbcNativePostRepository implements PostRepository {
                 selectSql,
                 params.toArray(),
                 (rs, rowNum) -> {
-                    Post p = new Post(
-                            rs.getLong("id"),
-                            rs.getString("title"),
-                            rs.getString("image_url"),
-                            rs.getString("content"),
-                            rs.getInt("like_count"),
-                            rs.getInt("comments_count"),
-                            rs.getTimestamp("created_at").toLocalDateTime(),
-                            rs.getTimestamp("updated_at").toLocalDateTime(),
-                            new ArrayList<>(),  // tags to be filled
-                            new ArrayList<>()   // comments not loaded here
-                    );
+                    Post p = new Post();
+                    p.setId(rs.getLong("id"));
+                    p.setTitle(rs.getString("title"));
+                    p.setImageUrl(rs.getString("image_url"));
+                    p.setContent(rs.getString("content"));
+                    p.setLikesCount(rs.getInt("like_count"));
+                    p.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+                    p.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
+                    p.setTags(new ArrayList<>());
+                    p.setComments(new ArrayList<>());
                     return p;
                 }
         );
@@ -94,10 +90,9 @@ public class JdbcNativePostRepository implements PostRepository {
                 Tag tag = new Tag(tagId, name);
                 tagsByPost.computeIfAbsent(pid, k -> new ArrayList<>()).add(tag);
             }
-
-            content.forEach(p ->
-                    p.setTags(tagsByPost.getOrDefault(p.getId(), Collections.emptyList()))
-            );
+            content.forEach(p -> p.setTags(
+                    tagsByPost.getOrDefault(p.getId(), Collections.emptyList())
+            ));
         }
 
         return new PageImpl<>(
@@ -113,31 +108,48 @@ public class JdbcNativePostRepository implements PostRepository {
                 "SELECT id, title, image_url, content, like_count, created_at, updated_at " +
                         "  FROM posts WHERE id = ?",
                 new Object[]{id},
-                (rs, rn) -> new Post(
-                        rs.getLong("id"),
-                        rs.getString("title"),
-                        rs.getString("image_url"),
-                        rs.getString("content"),
-                        rs.getInt("like_count"),
-                        0,
-                        rs.getTimestamp("created_at").toLocalDateTime(),
-                        rs.getTimestamp("updated_at").toLocalDateTime(),
-                        new ArrayList<>(),
-                        new ArrayList<>()
-                )
+                (rs, rn) -> {
+                    Post p = new Post();
+                    p.setId(rs.getLong("id"));
+                    p.setTitle(rs.getString("title"));
+                    p.setImageUrl(rs.getString("image_url"));
+                    p.setContent(rs.getString("content"));
+                    p.setLikesCount(rs.getInt("like_count"));
+                    p.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+                    p.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
+                    p.setTags(new ArrayList<>());
+                    p.setComments(new ArrayList<>());
+                    return p;
+                }
         );
 
-        if (post != null) {
-            List<Tag> tags = jdbcTemplate.query(
-                    "SELECT t.id, t.name " +
-                            "  FROM post_tags pt " +
-                            "  JOIN tags t ON pt.tag_id = t.id " +
-                            " WHERE pt.post_id = ?",
-                    new Object[]{id},
-                    (rs, rn) -> new Tag(rs.getLong("id"), rs.getString("name"))
-            );
-            post.setTags(tags);
-        }
+        List<Tag> tags = jdbcTemplate.query(
+                "SELECT t.id, t.name " +
+                        "  FROM post_tags pt " +
+                        "  JOIN tags t ON pt.tag_id = t.id " +
+                        " WHERE pt.post_id = ?",
+                new Object[]{id},
+                (rs, rn) -> new Tag(rs.getLong("id"), rs.getString("name"))
+        );
+        post.setTags(tags);
+
+        List<Comment> comments = jdbcTemplate.query(
+                "SELECT id, post_id, parent_id, content, created_at, updated_at " +
+                        "  FROM comments WHERE post_id = ? ORDER BY created_at",
+                new Object[]{id},
+                (rs, rn) -> {
+                    Comment c = new Comment();
+                    c.setId(rs.getLong("id"));
+                    c.setPostId(rs.getLong("post_id"));
+                    c.setContent(rs.getString("content"));
+                    c.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+                    c.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
+                    return c;
+                }
+        );
+        post.setComments(comments);
+
+        post.setTextParts(Arrays.asList(post.getContent().split("\\r?\\n\\r?\\n")));
 
         return post;
     }
@@ -169,16 +181,33 @@ public class JdbcNativePostRepository implements PostRepository {
                 "UPDATE posts " +
                         "   SET title = ?, image_url = ?, content = ?, like_count = ?, updated_at = CURRENT_TIMESTAMP() " +
                         " WHERE id = ?",
-                post.getTitle(),
-                post.getImageUrl(),
-                post.getContent(),
-                post.getLikesCount(),
-                post.getId()
+                post.getTitle(), post.getImageUrl(), post.getContent(), post.getLikesCount(), post.getId()
         );
     }
 
     @Override
     public void deleteById(Long id) {
         jdbcTemplate.update("DELETE FROM posts WHERE id = ?", id);
+    }
+
+    @Override
+    public void saveComment(Long postId, String text) {
+        jdbcTemplate.update(
+                "INSERT INTO comments(post_id, content, created_at, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())",
+                postId, text
+        );
+    }
+
+    @Override
+    public void updateComment(Long commentId, String text) {
+        jdbcTemplate.update(
+                "UPDATE comments SET content = ?, updated_at = CURRENT_TIMESTAMP() WHERE id = ?",
+                text, commentId
+        );
+    }
+
+    @Override
+    public void deleteComment(Long commentId) {
+        jdbcTemplate.update("DELETE FROM comments WHERE id = ?", commentId);
     }
 }
