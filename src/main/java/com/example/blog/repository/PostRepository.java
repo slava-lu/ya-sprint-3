@@ -2,6 +2,7 @@ package com.example.blog.repository;
 
 import com.example.blog.model.Post;
 import org.springframework.data.domain.Page;
+import java.util.Optional;
 
 
 public interface PostRepository {
@@ -14,4 +15,8 @@ public interface PostRepository {
     void saveComment(Long postId, String text);
     void updateComment(Long commentId, String text);
     void deleteComment(Long commentId);
+
+    Optional<Long> findTagIdByName(String name);
+    Long saveTag(String name);
+    void savePostTag(Long postId, Long tagId);
 }

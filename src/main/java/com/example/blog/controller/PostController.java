@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @Controller
 @RequestMapping("/posts")
@@ -32,9 +33,21 @@ public class PostController {
         return "posts";
     }
 
+
+    @GetMapping("/add")
+    public String showAddForm(Model model) {
+        model.addAttribute("post", new Post());
+        return "add-post";
+    }
+
+
     @PostMapping
-    public String addPost(@ModelAttribute Post post) {
-        postService.save(post);
+    public String createPost(
+            @ModelAttribute Post post,
+            @RequestParam(value = "tags", required = false, defaultValue = "") String tagsLine,
+            @RequestParam(value = "image", required = false) MultipartFile imageFile
+    ) {
+        postService.createPost(post, tagsLine, imageFile);
         return "redirect:/posts";
     }
 

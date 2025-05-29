@@ -225,4 +225,35 @@ public class JdbcNativePostRepository implements PostRepository {
     public void deleteComment(Long commentId) {
         jdbcTemplate.update("DELETE FROM comments WHERE id = ?", commentId);
     }
+
+    @Override
+    public Optional<Long> findTagIdByName(String name) {
+        return jdbcTemplate.query(
+                "SELECT id FROM tags WHERE name = ?",
+                new Object[]{name},
+                (rs, rn) -> rs.getLong("id")
+        ).stream().findFirst();
+    }
+
+    @Override
+    public Long saveTag(String name) {
+        KeyHolder kh = new GeneratedKeyHolder();
+        jdbcTemplate.update(conn -> {
+            PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO tags(name) VALUES(?)",
+                    Statement.RETURN_GENERATED_KEYS
+            );
+            ps.setString(1, name);
+            return ps;
+        }, kh);
+        return kh.getKey().longValue();
+    }
+
+    @Override
+    public void savePostTag(Long postId, Long tagId) {
+        jdbcTemplate.update(
+                "INSERT INTO post_tags(post_id, tag_id) VALUES(?, ?)",
+                postId, tagId
+        );
+    }
 }

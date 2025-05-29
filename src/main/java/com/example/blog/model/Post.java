@@ -5,6 +5,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -28,5 +29,18 @@ public class Post {
         return content.length() <= 300
                 ? content
                 : content.substring(0,300) + "…";
+    }
+
+    public String getTagsAsText() {
+        if (tags == null || tags.isEmpty()) {
+            return "";
+        }
+        return tags.stream()
+                .map(Tag::getName)
+                .collect(Collectors.joining(" "));
+    }
+
+    public String getText() {
+        return content == null ? "" : content;
     }
 }
