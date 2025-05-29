@@ -63,4 +63,25 @@ public class PostController {
         return "redirect:/posts/" + id;
     }
 
+    @PostMapping("/{id}/comments")
+    public String addComment(@PathVariable("id")Long id, @RequestParam("text") String text) {
+        postService.saveComment(id, text);
+        return "redirect:/posts/" + id;
+    }
+
+    @PostMapping("/{id}/comments/{commentId}")
+    public String editComment(@PathVariable("id") Long id,
+                              @PathVariable("commentId") Long commentId,
+                              @RequestParam("text") String text) {
+        postService.updateComment(commentId, text);
+        return "redirect:/posts/" + id;
+    }
+
+    @PostMapping("/{id}/comments/{commentId}/delete")
+    public String deleteComment(@PathVariable("id") Long id,
+                                @PathVariable("commentId") Long commentId) {
+        postService.deleteComment(commentId);
+        return "redirect:/posts/" + id;
+    }
+
 }
