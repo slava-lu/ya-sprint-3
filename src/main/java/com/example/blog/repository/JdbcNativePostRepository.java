@@ -104,6 +104,7 @@ public class JdbcNativePostRepository implements PostRepository {
 
     @Override
     public Post findById(Long id) {
+        // 1) load the post
         Post post = jdbcTemplate.queryForObject(
                 "SELECT id, title, image_url, content, like_count, created_at, updated_at " +
                         "  FROM posts WHERE id = ?",
@@ -117,24 +118,13 @@ public class JdbcNativePostRepository implements PostRepository {
                     p.setLikesCount(rs.getInt("like_count"));
                     p.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
                     p.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
-                    p.setTags(new ArrayList<>());
-                    p.setComments(new ArrayList<>());
                     return p;
                 }
         );
 
-        List<Tag> tags = jdbcTemplate.query(
-                "SELECT t.id, t.name " +
-                        "  FROM post_tags pt " +
-                        "  JOIN tags t ON pt.tag_id = t.id " +
-                        " WHERE pt.post_id = ?",
-                new Object[]{id},
-                (rs, rn) -> new Tag(rs.getLong("id"), rs.getString("name"))
-        );
-        post.setTags(tags);
-
+        // 2) load comments (flat list)
         List<Comment> comments = jdbcTemplate.query(
-                "SELECT id, post_id, parent_id, content, created_at, updated_at " +
+                "SELECT id, post_id, content, created_at, updated_at " +
                         "  FROM comments WHERE post_id = ? ORDER BY created_at",
                 new Object[]{id},
                 (rs, rn) -> {
@@ -149,7 +139,21 @@ public class JdbcNativePostRepository implements PostRepository {
         );
         post.setComments(comments);
 
-        post.setTextParts(Arrays.asList(post.getContent().split("\\r?\\n\\r?\\n")));
+        // 3) load tags
+        List<Tag> tags = jdbcTemplate.query(
+                "SELECT t.id, t.name " +
+                        "  FROM post_tags pt " +
+                        "  JOIN tags t ON pt.tag_id = t.id " +
+                        " WHERE pt.post_id = ?",
+                new Object[]{id},
+                (rs, rn) -> new Tag(rs.getLong("id"), rs.getString("name"))
+        );
+        post.setTags(tags);
+
+        // 4) split content into paragraphs
+        post.setTextParts(
+                Arrays.asList(post.getContent().split("\\r?\\n\\r?\\n"))
+        );
 
         return post;
     }
