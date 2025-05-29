@@ -44,10 +44,18 @@ public class JdbcNativePostRepository implements PostRepository {
         );
 
         String selectSql =
-                "SELECT DISTINCT p.id, p.title, p.image_url, p.content, p.like_count, p.created_at, p.updated_at" +
-                        baseSql +
-                        " ORDER BY p.created_at DESC" +
-                        " LIMIT ? OFFSET ?";
+                "SELECT DISTINCT "
+                        + "  p.id, "
+                        + "  p.title, "
+                        + "  p.image_url, "
+                        + "  p.content, "
+                        + "  p.like_count, "
+                        + "  p.created_at, "
+                        + "  p.updated_at, "
+                        + "  (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) AS comments_count"
+                        + baseSql
+                        + " ORDER BY p.created_at DESC"
+                        + " LIMIT ? OFFSET ?";
 
         params.add(pageSize);
         params.add(pageNumber * pageSize);
@@ -64,11 +72,13 @@ public class JdbcNativePostRepository implements PostRepository {
                     p.setLikesCount(rs.getInt("like_count"));
                     p.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
                     p.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
-                    p.setTags(new ArrayList<>());
-                    p.setComments(new ArrayList<>());
+                    p.setCommentsCount(rs.getInt("comments_count"));
+                    p.setTags(new ArrayList<>());        // will be populated separately
+                    p.setComments(new ArrayList<>());    // not used in list view
                     return p;
                 }
         );
+
 
         if (!content.isEmpty()) {
             List<Long> postIds = content.stream()
@@ -87,12 +97,12 @@ public class JdbcNativePostRepository implements PostRepository {
                 Long pid    = ((Number) row.get("post_id")).longValue();
                 Long tagId  = ((Number) row.get("tag_id")).longValue();
                 String name = (String) row.get("name");
-                Tag tag = new Tag(tagId, name);
-                tagsByPost.computeIfAbsent(pid, k -> new ArrayList<>()).add(tag);
+                tagsByPost.computeIfAbsent(pid, k -> new ArrayList<>())
+                        .add(new Tag(tagId, name));
             }
-            content.forEach(p -> p.setTags(
-                    tagsByPost.getOrDefault(p.getId(), Collections.emptyList())
-            ));
+            content.forEach(p ->
+                    p.setTags(tagsByPost.getOrDefault(p.getId(), Collections.emptyList()))
+            );
         }
 
         return new PageImpl<>(
@@ -101,6 +111,7 @@ public class JdbcNativePostRepository implements PostRepository {
                 total == null ? 0 : total
         );
     }
+
 
     @Override
     public Post findById(Long id) {
