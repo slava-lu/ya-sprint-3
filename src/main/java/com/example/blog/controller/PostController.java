@@ -65,10 +65,15 @@ public class PostController {
 
     @PostMapping
     public String createPost(
-            @ModelAttribute Post post,
+            @RequestParam("title") String title,
+            @RequestParam("content") String content,
             @RequestParam(value = "tags", required = false, defaultValue = "") String tagsLine,
             @RequestParam(value = "image", required = false) MultipartFile imageFile
     ) {
+        Post post = new Post();
+        post.setTitle(title);
+        post.setContent(content);
+        post.setLikesCount(0);
         postService.createPost(post, tagsLine, imageFile);
         return "redirect:/posts";
     }

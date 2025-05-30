@@ -185,8 +185,9 @@ public class JdbcNativePostRepository implements PostRepository {
             return ps;
         }, keyHolder);
 
-        if (keyHolder.getKey() != null) {
-            post.setId(keyHolder.getKey().longValue());
+        Map<String, Object> keys = keyHolder.getKeys();
+        if (keys != null && keys.containsKey("ID")) {
+            post.setId(((Number) keys.get("ID")).longValue());
         }
     }
 
