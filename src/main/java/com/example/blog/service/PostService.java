@@ -67,7 +67,6 @@ public class PostService {
 
         postRepository.save(post);
 
-        // 2) save uploaded image
         if (imageFile != null && !imageFile.isEmpty()) {
             String original = imageFile.getOriginalFilename();
             String ext = (original != null && original.lastIndexOf('.') >= 0)
@@ -85,7 +84,7 @@ public class PostService {
             }
         }
 
-        // 3) parse and persist tags
+
         List<String> tags = Arrays.stream(tagsLine.split("[,\\s]+"))
                 .map(String::trim)
                 .filter(s -> !s.isBlank())
@@ -95,6 +94,41 @@ public class PostService {
         for (String name : tags) {
             Long tagId = postRepository
                     .findTagIdByName(name)
+                    .orElseGet(() -> postRepository.saveTag(name));
+            postRepository.savePostTag(post.getId(), tagId);
+        }
+    }
+
+    public void updatePost(Post post, String tagsLine, MultipartFile imageFile) {
+        if (imageFile != null && !imageFile.isEmpty()) {
+            String original = imageFile.getOriginalFilename();
+            String ext = (original != null && original.lastIndexOf('.') >= 0)
+                    ? original.substring(original.lastIndexOf('.'))
+                    : ".jpg";
+            try {
+                Path dir = Paths.get("target/classes/static/images");
+                Files.createDirectories(dir);
+                Path file = dir.resolve(post.getId() + ext);
+                Files.copy(imageFile.getInputStream(), file, StandardCopyOption.REPLACE_EXISTING);
+                post.setImageUrl("/images/" + file.getFileName());
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to update image", e);
+            }
+        }
+
+        postRepository.update(post);
+
+        List<String> tags = Arrays.stream(tagsLine.split("[,\\s]+"))
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .distinct()
+                .collect(Collectors.toList());
+
+        // 1. Clear old tags
+        postRepository.clearTagsForPost(post.getId());
+
+        for (String name : tags) {
+            Long tagId = postRepository.findTagIdByName(name)
                     .orElseGet(() -> postRepository.saveTag(name));
             postRepository.savePostTag(post.getId(), tagId);
         }

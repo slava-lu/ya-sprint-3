@@ -191,6 +191,11 @@ public class JdbcNativePostRepository implements PostRepository {
     }
 
     @Override
+    public void clearTagsForPost(Long postId) {
+        jdbcTemplate.update("DELETE FROM post_tags WHERE post_id = ?", postId);
+    }
+
+    @Override
     public void update(Post post) {
         jdbcTemplate.update(
                 "UPDATE posts " +

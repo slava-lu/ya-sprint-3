@@ -15,6 +15,7 @@ public interface PostRepository {
     void saveComment(Long postId, String text);
     void updateComment(Long commentId, String text);
     void deleteComment(Long commentId);
+    void clearTagsForPost(Long postId);
 
     Optional<Long> findTagIdByName(String name);
     Long saveTag(String name);

@@ -33,13 +33,35 @@ public class PostController {
         return "posts";
     }
 
-
     @GetMapping("/add")
     public String showAddForm(Model model) {
         model.addAttribute("post", new Post());
         return "add-post";
     }
 
+    @GetMapping("/{id}/edit")
+    public String showEditForm(@PathVariable("id") Long id, Model model) {
+        Post post = postService.findById(id);
+        model.addAttribute("post", post);
+        return "add-post";
+    }
+
+    @PostMapping("/{id}")
+    public String updatePost(
+            @PathVariable("id") Long id,
+            @RequestParam("title") String title,
+            @RequestParam("content") String content,
+            @RequestParam(value = "tags", required = false, defaultValue = "") String tagsLine,
+            @RequestParam(value = "image", required = false) MultipartFile imageFile
+    ) {
+        Post post = new Post();
+        post.setId(id);
+        post.setTitle(title);
+        post.setContent(content);
+        post.setLikesCount(0);
+        postService.updatePost(post, tagsLine, imageFile);
+        return "redirect:/posts/" + id;
+    }
 
     @PostMapping
     public String createPost(
