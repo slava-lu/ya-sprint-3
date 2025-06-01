@@ -2,13 +2,11 @@ package com.example.blog.service;
 
 import com.example.blog.model.Post;
 import com.example.blog.repository.PostRepository;
+import jakarta.servlet.ServletContext;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,8 +20,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PostService {
 
-    @Value("${app.upload.dir}")
-    private String uploadDir;
+    private final ServletContext servletContext;
 
     private final PostRepository postRepository;
 
@@ -73,11 +70,17 @@ public class PostService {
                     ? original.substring(original.lastIndexOf('.'))
                     : ".jpg";
             try {
-                Path dir = Paths.get(uploadDir);
-                System.out.println(dir);
+                // Get the real absolute path of /images/
+                String realPath = servletContext.getRealPath("/images/");
+
+                Path dir = Paths.get(realPath);
                 Files.createDirectories(dir);
+
+                // Save the image to that directory
                 Path file = dir.resolve(post.getId() + ext);
                 Files.copy(imageFile.getInputStream(), file, StandardCopyOption.REPLACE_EXISTING);
+
+                // Save the image URL (web-accessible path)
                 post.setImageUrl("/images/" + file.getFileName());
                 postRepository.update(post);
             } catch (IOException e) {
@@ -85,6 +88,7 @@ public class PostService {
             }
         }
     }
+
     public void createPost(Post post, String tagsLine, MultipartFile imageFile) {
         if (tagsLine == null) {
             tagsLine = "";
