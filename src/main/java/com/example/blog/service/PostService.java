@@ -74,6 +74,7 @@ public class PostService {
                     : ".jpg";
             try {
                 Path dir = Paths.get(uploadDir);
+                System.out.println(dir);
                 Files.createDirectories(dir);
                 Path file = dir.resolve(post.getId() + ext);
                 Files.copy(imageFile.getInputStream(), file, StandardCopyOption.REPLACE_EXISTING);
@@ -90,7 +91,6 @@ public class PostService {
         }
 
         postRepository.save(post);
-
         saveImage(post, imageFile);
 
         List<String> tags = Arrays.stream(tagsLine.split("[,\\s]+"))
@@ -108,9 +108,9 @@ public class PostService {
     }
 
     public void updatePost(Post post, String tagsLine, MultipartFile imageFile) {
-        saveImage(post, imageFile);
 
         postRepository.update(post);
+        saveImage(post, imageFile);
 
         List<String> tags = Arrays.stream(tagsLine.split("[,\\s]+"))
                 .map(String::trim)
