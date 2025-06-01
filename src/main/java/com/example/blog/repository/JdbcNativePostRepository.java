@@ -50,11 +50,9 @@ public class JdbcNativePostRepository implements PostRepository {
                         + "  p.image_url, "
                         + "  p.content, "
                         + "  p.like_count, "
-                        + "  p.created_at, "
-                        + "  p.updated_at, "
                         + "  (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) AS comments_count"
                         + baseSql
-                        + " ORDER BY p.created_at DESC"
+                        + " ORDER BY p.id DESC"
                         + " LIMIT ? OFFSET ?";
 
         params.add(pageSize);
@@ -70,15 +68,12 @@ public class JdbcNativePostRepository implements PostRepository {
                     p.setImageUrl(rs.getString("image_url"));
                     p.setContent(rs.getString("content"));
                     p.setLikesCount(rs.getInt("like_count"));
-                    p.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
-                    p.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
                     p.setCommentsCount(rs.getInt("comments_count"));
-                    p.setTags(new ArrayList<>());        // will be populated separately
-                    p.setComments(new ArrayList<>());    // not used in list view
+                    p.setTags(new ArrayList<>());
+                    p.setComments(new ArrayList<>());
                     return p;
                 }
         );
-
 
         if (!content.isEmpty()) {
             List<Long> postIds = content.stream()
@@ -87,15 +82,15 @@ public class JdbcNativePostRepository implements PostRepository {
             String inSql = postIds.stream().map(id -> "?").collect(Collectors.joining(","));
             String tagSql =
                     "SELECT pt.post_id, t.id AS tag_id, t.name " +
-                            "  FROM post_tags pt " +
-                            "  JOIN tags t ON pt.tag_id = t.id " +
-                            " WHERE pt.post_id IN (" + inSql + ")";
+                            "FROM post_tags pt " +
+                            "JOIN tags t ON pt.tag_id = t.id " +
+                            "WHERE pt.post_id IN (" + inSql + ")";
             List<Map<String, Object>> rows = jdbcTemplate.queryForList(tagSql, postIds.toArray());
 
             Map<Long, List<Tag>> tagsByPost = new HashMap<>();
             for (Map<String, Object> row : rows) {
-                Long pid    = ((Number) row.get("post_id")).longValue();
-                Long tagId  = ((Number) row.get("tag_id")).longValue();
+                Long pid = ((Number) row.get("post_id")).longValue();
+                Long tagId = ((Number) row.get("tag_id")).longValue();
                 String name = (String) row.get("name");
                 tagsByPost.computeIfAbsent(pid, k -> new ArrayList<>())
                         .add(new Tag(tagId, name));
@@ -112,13 +107,11 @@ public class JdbcNativePostRepository implements PostRepository {
         );
     }
 
-
     @Override
     public Post findById(Long id) {
-        // 1) load the post
         Post post = jdbcTemplate.queryForObject(
-                "SELECT id, title, image_url, content, like_count, created_at, updated_at " +
-                        "  FROM posts WHERE id = ?",
+                "SELECT id, title, image_url, content, like_count " +
+                        "FROM posts WHERE id = ?",
                 new Object[]{id},
                 (rs, rn) -> {
                     Post p = new Post();
@@ -127,41 +120,34 @@ public class JdbcNativePostRepository implements PostRepository {
                     p.setImageUrl(rs.getString("image_url"));
                     p.setContent(rs.getString("content"));
                     p.setLikesCount(rs.getInt("like_count"));
-                    p.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
-                    p.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
                     return p;
                 }
         );
 
-        // 2) load comments (flat list)
         List<Comment> comments = jdbcTemplate.query(
-                "SELECT id, post_id, content, created_at, updated_at " +
-                        "  FROM comments WHERE post_id = ? ORDER BY created_at",
+                "SELECT id, post_id, content, " +
+                        "FROM comments WHERE post_id = ?",
                 new Object[]{id},
                 (rs, rn) -> {
                     Comment c = new Comment();
                     c.setId(rs.getLong("id"));
                     c.setPostId(rs.getLong("post_id"));
                     c.setContent(rs.getString("content"));
-                    c.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
-                    c.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
                     return c;
                 }
         );
         post.setComments(comments);
 
-        // 3) load tags
         List<Tag> tags = jdbcTemplate.query(
                 "SELECT t.id, t.name " +
-                        "  FROM post_tags pt " +
-                        "  JOIN tags t ON pt.tag_id = t.id " +
-                        " WHERE pt.post_id = ?",
+                        "FROM post_tags pt " +
+                        "JOIN tags t ON pt.tag_id = t.id " +
+                        "WHERE pt.post_id = ?",
                 new Object[]{id},
                 (rs, rn) -> new Tag(rs.getLong("id"), rs.getString("name"))
         );
         post.setTags(tags);
 
-        // 4) split content into paragraphs
         post.setTextParts(
                 Arrays.asList(post.getContent().split("\\r?\\n\\r?\\n"))
         );
@@ -174,8 +160,7 @@ public class JdbcNativePostRepository implements PostRepository {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(conn -> {
             PreparedStatement ps = conn.prepareStatement(
-                    "INSERT INTO posts(title, image_url, content, like_count, created_at, updated_at) " +
-                            "VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())",
+                    "INSERT INTO posts(title, image_url, content, like_count) VALUES(?, ?, ?, ?)",
                     Statement.RETURN_GENERATED_KEYS
             );
             ps.setString(1, post.getTitle());
@@ -185,9 +170,9 @@ public class JdbcNativePostRepository implements PostRepository {
             return ps;
         }, keyHolder);
 
-        Map<String, Object> keys = keyHolder.getKeys();
-        if (keys != null && keys.containsKey("ID")) {
-            post.setId(((Number) keys.get("ID")).longValue());
+        Number key = keyHolder.getKey();
+        if (key != null) {
+            post.setId(key.longValue());
         }
     }
 
@@ -199,9 +184,7 @@ public class JdbcNativePostRepository implements PostRepository {
     @Override
     public void update(Post post) {
         jdbcTemplate.update(
-                "UPDATE posts " +
-                        "   SET title = ?, image_url = ?, content = ?, like_count = ?, updated_at = CURRENT_TIMESTAMP() " +
-                        " WHERE id = ?",
+                "UPDATE posts SET title = ?, image_url = ?, content = ?, like_count = ? WHERE id = ?",
                 post.getTitle(), post.getImageUrl(), post.getContent(), post.getLikesCount(), post.getId()
         );
     }
@@ -214,7 +197,7 @@ public class JdbcNativePostRepository implements PostRepository {
     @Override
     public void saveComment(Long postId, String text) {
         jdbcTemplate.update(
-                "INSERT INTO comments(post_id, content, created_at, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())",
+                "INSERT INTO comments(post_id, content) VALUES (?, ?)",
                 postId, text
         );
     }

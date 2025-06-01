@@ -11,9 +11,7 @@ CREATE TABLE posts (
                        title       VARCHAR(255) NOT NULL,
                        image_url   VARCHAR(500),
                        content     CLOB       NOT NULL,
-                       like_count  INT        NOT NULL DEFAULT 0,
-                       created_at  TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP(),
-                       updated_at  TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP()
+                       like_count  INT        NOT NULL DEFAULT 0
 );
 
 -- --------------------------------
@@ -43,8 +41,6 @@ CREATE TABLE comments (
                           post_id    BIGINT NOT NULL,
                           parent_id  BIGINT,
                           content    CLOB    NOT NULL,
-                          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
-                          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
                           CONSTRAINT fk_c_post   FOREIGN KEY (post_id)   REFERENCES posts(id)    ON DELETE CASCADE,
                           CONSTRAINT fk_c_parent FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE CASCADE
 );

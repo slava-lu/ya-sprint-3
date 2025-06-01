@@ -18,8 +18,6 @@ public class Post {
     private String content;
     private int likesCount;
     private int commentsCount;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
     private List<String> textParts = new ArrayList<>();
 
     private List<Tag> tags;

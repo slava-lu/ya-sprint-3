@@ -3,10 +3,12 @@ package com.example.blog.service;
 import com.example.blog.model.Post;
 import com.example.blog.repository.PostRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -19,6 +21,9 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class PostService {
+
+    @Value("${app.upload.dir}")
+    private String uploadDir;
 
     private final PostRepository postRepository;
 
@@ -60,20 +65,15 @@ public class PostService {
     public void deleteComment(Long commentId) {
         postRepository.deleteComment(commentId);
     }
-    public void createPost(Post post, String tagsLine, MultipartFile imageFile) {
-        if (tagsLine == null) {
-            tagsLine = "";
-        }
 
-        postRepository.save(post);
-
+    private void saveImage(Post post, MultipartFile imageFile) {
         if (imageFile != null && !imageFile.isEmpty()) {
             String original = imageFile.getOriginalFilename();
             String ext = (original != null && original.lastIndexOf('.') >= 0)
                     ? original.substring(original.lastIndexOf('.'))
                     : ".jpg";
             try {
-                Path dir = Paths.get("target/classes/static/images");
+                Path dir = Paths.get(uploadDir);
                 Files.createDirectories(dir);
                 Path file = dir.resolve(post.getId() + ext);
                 Files.copy(imageFile.getInputStream(), file, StandardCopyOption.REPLACE_EXISTING);
@@ -83,7 +83,15 @@ public class PostService {
                 throw new RuntimeException("Failed to store image", e);
             }
         }
+    }
+    public void createPost(Post post, String tagsLine, MultipartFile imageFile) {
+        if (tagsLine == null) {
+            tagsLine = "";
+        }
 
+        postRepository.save(post);
+
+        saveImage(post, imageFile);
 
         List<String> tags = Arrays.stream(tagsLine.split("[,\\s]+"))
                 .map(String::trim)
@@ -100,21 +108,7 @@ public class PostService {
     }
 
     public void updatePost(Post post, String tagsLine, MultipartFile imageFile) {
-        if (imageFile != null && !imageFile.isEmpty()) {
-            String original = imageFile.getOriginalFilename();
-            String ext = (original != null && original.lastIndexOf('.') >= 0)
-                    ? original.substring(original.lastIndexOf('.'))
-                    : ".jpg";
-            try {
-                Path dir = Paths.get("target/classes/static/images");
-                Files.createDirectories(dir);
-                Path file = dir.resolve(post.getId() + ext);
-                Files.copy(imageFile.getInputStream(), file, StandardCopyOption.REPLACE_EXISTING);
-                post.setImageUrl("/images/" + file.getFileName());
-            } catch (IOException e) {
-                throw new RuntimeException("Failed to update image", e);
-            }
-        }
+        saveImage(post, imageFile);
 
         postRepository.update(post);
 
@@ -124,11 +118,11 @@ public class PostService {
                 .distinct()
                 .collect(Collectors.toList());
 
-        // 1. Clear old tags
         postRepository.clearTagsForPost(post.getId());
 
         for (String name : tags) {
-            Long tagId = postRepository.findTagIdByName(name)
+            Long tagId = postRepository
+                    .findTagIdByName(name)
                     .orElseGet(() -> postRepository.saveTag(name));
             postRepository.savePostTag(post.getId(), tagId);
         }
