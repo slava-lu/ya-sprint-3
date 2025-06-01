@@ -42,11 +42,11 @@
         </tr>
         <tr th:each="post : ${posts}">
             <td style="border-bottom:thin solid;">
-                <h2 th:text="${post.getTitle()}"></h2>
+                <a th:href="${'/posts/'+post.getId()}">
+                  <h2 th:text="${post.getTitle()}"></h2>
+                </a>
                 <p>
-                    <a th:href="${'/posts/'+post.getId()}">
-                        <img height="300" th:src="${post.imageUrl}" />
-                    </a>
+                    <img height="300" th:src="${post.imageUrl}" />
                 </p>
                 <p th:text="${post.getTextPreview()}"></p>
                 <p>
