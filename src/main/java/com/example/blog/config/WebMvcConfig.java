@@ -1,5 +1,6 @@
 package com.example.blog.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -15,6 +16,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @PropertySource("classpath:application.properties")
 public class WebMvcConfig implements WebMvcConfigurer {
 
+    @Value("${app.upload.dir}")
+    private String uploadDir;
+
     @Bean
     public StandardServletMultipartResolver multipartResolver() {
         return new StandardServletMultipartResolver();
@@ -22,8 +26,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry
-                .addResourceHandler("/images/**")
-                .addResourceLocations("/images/");
+        // Map /images/** to local file system path (always use forward slashes)
+        registry.addResourceHandler("/images/**")
+                .addResourceLocations("file:///" + uploadDir.replace("\\", "/") + "/");
     }
 }
