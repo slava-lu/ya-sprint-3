@@ -29,7 +29,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry
                 .addResourceHandler("/images/**")
-                .addResourceLocations("file:/C:/7_Yandex/Sprint3/src/main/webapp/images/") // adjust if needed
-                .setCacheControl(CacheControl.noStore()); // disables caching
-    }
+                .addResourceLocations("file:/C:/7_Yandex/Sprint3/src/main/webapp/images/")
+                .setCacheControl(CacheControl.noStore());
+   }
 }
