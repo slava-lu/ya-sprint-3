@@ -45,7 +45,7 @@
                 <h2 th:text="${post.getTitle()}"></h2>
                 <p>
                     <a th:href="${'/posts/'+post.getId()}">
-                        <img height="300" th:src="${'http://localhost:8080/images/'+post.getId()}">
+                        <img height="300" th:src="${post.imageUrl}" />
                     </a>
                 </p>
                 <p th:text="${post.getTextPreview()}"></p>
