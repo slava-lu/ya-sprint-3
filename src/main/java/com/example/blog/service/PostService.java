@@ -70,17 +70,14 @@ public class PostService {
                     ? original.substring(original.lastIndexOf('.'))
                     : ".jpg";
             try {
-                // Get the real absolute path of /images/
                 String realPath = servletContext.getRealPath("/images/");
 
                 Path dir = Paths.get(realPath);
                 Files.createDirectories(dir);
 
-                // Save the image to that directory
                 Path file = dir.resolve(post.getId() + ext);
                 Files.copy(imageFile.getInputStream(), file, StandardCopyOption.REPLACE_EXISTING);
 
-                // Save the image URL (web-accessible path)
                 post.setImageUrl("/images/" + file.getFileName());
                 postRepository.update(post);
             } catch (IOException e) {

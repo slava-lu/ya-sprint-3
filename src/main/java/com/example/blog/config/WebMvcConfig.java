@@ -33,6 +33,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
         registry.addResourceHandler("/images/**")
                 .addResourceLocations(resourcePath)
-                .setCachePeriod(0); // optional: disable cache for dev
+                .setCachePeriod(0);
     }
 }

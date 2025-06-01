@@ -26,7 +26,6 @@ public class DataSourceConfiguration {
     @Value("${app.upload.dir}")
     private String uploadDir;
 
-    // Настройка DataSource — компонент, отвечающий за соединение с базой данных
     @Bean
     public DataSource dataSource(
             @Value("${spring.datasource.url}") String url,
@@ -42,23 +41,21 @@ public class DataSourceConfiguration {
         return dataSource;
     }
 
-    // JdbcTemplate — компонент для выполнения запросов
     @Bean
     public JdbcTemplate jdbcTemplate(DataSource dataSource) {
         return new JdbcTemplate(dataSource);
     }
 
-    // После инициализации контекста выполняем наполнение схемы базы данных
     @EventListener
     public void populate(ContextRefreshedEvent event) {
         DataSource dataSource = event.getApplicationContext().getBean(DataSource.class);
 
         ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
-        populator.addScript(new ClassPathResource("schema.sql")); // Файл должен находиться в ресурсах
+        populator.addScript(new ClassPathResource("schema.sql"));
         populator.execute(dataSource);
 
         try {
-            Path targetDir = Paths.get(uploadDir); // ✅ Uses injected value
+            Path targetDir = Paths.get(uploadDir);
             Files.createDirectories(targetDir);
 
             List<String> imageNames = List.of("1.jpg", "2.jpg", "3.jpg");
