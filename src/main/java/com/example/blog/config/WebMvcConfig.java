@@ -10,8 +10,6 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import java.nio.file.Paths;
-
 @Configuration
 @EnableWebMvc
 @ComponentScan(basePackages = "com.example.blog")
@@ -20,7 +18,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Value("${app.upload.dir}")
     private String uploadDir;
-
 
     @Bean
     public StandardServletMultipartResolver multipartResolver() {
