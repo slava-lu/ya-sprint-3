@@ -2,7 +2,6 @@ package com.example.blog.service;
 
 import com.example.blog.model.Post;
 import com.example.blog.repository.PostRepository;
-import jakarta.servlet.ServletContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
