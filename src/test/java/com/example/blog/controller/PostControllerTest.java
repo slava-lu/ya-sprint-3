@@ -1,39 +1,30 @@
 package com.example.blog.controller;
 
-import com.example.blog.config.Initializer;
-import com.example.blog.config.WebMvcConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
-import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringJUnitConfig(classes = {Initializer.class, WebMvcConfig.class})
-@WebAppConfiguration
-@TestPropertySource(locations = "classpath:application.properties")
-class PostControllerTest {
 
-    @Autowired
-    private WebApplicationContext webApplicationContext;
+@SpringBootTest
+@AutoConfigureMockMvc
+class PostControllerTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-
         jdbcTemplate.execute("DELETE FROM posts");
         jdbcTemplate.execute("INSERT INTO posts (id, title, image_url, content, like_count) VALUES (1, 'Test Title', '/images/test.jpg', 'Test Content', 0)");
     }
