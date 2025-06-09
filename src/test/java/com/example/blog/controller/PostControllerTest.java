@@ -1,6 +1,6 @@
 package com.example.blog.controller;
 
-import com.example.blog.config.DataSourceConfiguration;
+import com.example.blog.config.Initializer;
 import com.example.blog.config.WebMvcConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,9 +17,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringJUnitConfig(classes = {DataSourceConfiguration.class, WebMvcConfig.class})
+@SpringJUnitConfig(classes = {Initializer.class, WebMvcConfig.class})
 @WebAppConfiguration
-@TestPropertySource(locations = "classpath:application-dev.properties")
+@TestPropertySource(locations = "classpath:application.properties")
 class PostControllerTest {
 
     @Autowired
