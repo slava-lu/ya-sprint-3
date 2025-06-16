@@ -39,17 +39,9 @@ public class PostService {
     public void deleteById(Long id) {
         postRepository.deleteById(id);
     }
-    public void incrementLikes(Long id) {
-        Post p = findById(id);
-        p.setLikesCount(p.getLikesCount() + 1);
-        update(p);
-    }
 
-    public void decrementLikes(Long id) {
-        Post p = findById(id);
-        p.setLikesCount(p.getLikesCount() - 1);
-        update(p);
-    }
+    public void addLike(Long postId) {postRepository.addLike(postId); }
+    public void removeLike(Long postId) {postRepository.removeLike(postId); }
 
     public void saveComment(Long postId, String text) {
         postRepository.saveComment(postId, text);

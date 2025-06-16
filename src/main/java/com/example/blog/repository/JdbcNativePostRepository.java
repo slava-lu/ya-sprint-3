@@ -48,7 +48,7 @@ public class JdbcNativePostRepository implements PostRepository {
                         + "  p.title, "
                         + "  p.image_url, "
                         + "  p.content, "
-                        + "  p.like_count, "
+                        + "  (SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id) AS likes_count, "
                         + "  (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) AS comments_count"
                         + baseSql
                         + " ORDER BY p.id DESC"
@@ -66,7 +66,7 @@ public class JdbcNativePostRepository implements PostRepository {
                     p.setTitle(rs.getString("title"));
                     p.setImageUrl(rs.getString("image_url"));
                     p.setContent(rs.getString("content"));
-                    p.setLikesCount(rs.getInt("like_count"));
+                    p.setLikesCount(rs.getInt("likes_count"));
                     p.setCommentsCount(rs.getInt("comments_count"));
                     p.setTags(new ArrayList<>());
                     p.setComments(new ArrayList<>());
@@ -109,8 +109,7 @@ public class JdbcNativePostRepository implements PostRepository {
     @Override
     public Post findById(Long id) {
         Post post = jdbcTemplate.queryForObject(
-                "SELECT id, title, image_url, content, like_count " +
-                        "FROM posts WHERE id = ?",
+                "SELECT id, title, image_url, content FROM posts WHERE id = ?",
                 new Object[]{id},
                 (rs, rn) -> {
                     Post p = new Post();
@@ -118,14 +117,21 @@ public class JdbcNativePostRepository implements PostRepository {
                     p.setTitle(rs.getString("title"));
                     p.setImageUrl(rs.getString("image_url"));
                     p.setContent(rs.getString("content"));
-                    p.setLikesCount(rs.getInt("like_count"));
                     return p;
                 }
         );
 
+        // Fetch like count from separate table
+        Integer likeCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM likes WHERE post_id = ?",
+                new Object[]{id},
+                Integer.class
+        );
+        post.setLikesCount(likeCount != null ? likeCount : 0);
+
+        // Fetch comments
         List<Comment> comments = jdbcTemplate.query(
-                "SELECT id, post_id, content, " +
-                        "FROM comments WHERE post_id = ?",
+                "SELECT id, post_id, content FROM comments WHERE post_id = ?",
                 new Object[]{id},
                 (rs, rn) -> {
                     Comment c = new Comment();
@@ -137,16 +143,16 @@ public class JdbcNativePostRepository implements PostRepository {
         );
         post.setComments(comments);
 
+        // Fetch tags
         List<Tag> tags = jdbcTemplate.query(
-                "SELECT t.id, t.name " +
-                        "FROM post_tags pt " +
-                        "JOIN tags t ON pt.tag_id = t.id " +
-                        "WHERE pt.post_id = ?",
+                "SELECT t.id, t.name FROM post_tags pt " +
+                        "JOIN tags t ON pt.tag_id = t.id WHERE pt.post_id = ?",
                 new Object[]{id},
                 (rs, rn) -> new Tag(rs.getLong("id"), rs.getString("name"))
         );
         post.setTags(tags);
 
+        // Split content into text parts
         post.setTextParts(
                 Arrays.asList(post.getContent().split("\\r?\\n\\r?\\n"))
         );
@@ -154,18 +160,19 @@ public class JdbcNativePostRepository implements PostRepository {
         return post;
     }
 
+
     @Override
     public void save(Post post) {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(conn -> {
             PreparedStatement ps = conn.prepareStatement(
-                    "INSERT INTO posts(title, image_url, content, like_count) VALUES(?, ?, ?, ?)",
+                    "INSERT INTO posts(title, image_url, content) VALUES(?, ?, ?)",
                     Statement.RETURN_GENERATED_KEYS
             );
             ps.setString(1, post.getTitle());
             ps.setString(2, post.getImageUrl());
             ps.setString(3, post.getContent());
-            ps.setInt(4, post.getLikesCount());
+
             return ps;
         }, keyHolder);
 
@@ -183,8 +190,23 @@ public class JdbcNativePostRepository implements PostRepository {
     @Override
     public void update(Post post) {
         jdbcTemplate.update(
-                "UPDATE posts SET title = ?, image_url = ?, content = ?, like_count = ? WHERE id = ?",
-                post.getTitle(), post.getImageUrl(), post.getContent(), post.getLikesCount(), post.getId()
+                "UPDATE posts SET title = ?, image_url = ?, content = ? WHERE id = ?",
+                post.getTitle(), post.getImageUrl(), post.getContent(), post.getId()
+        );
+    }
+
+    @Override
+    public void addLike(Long postId) {
+        jdbcTemplate.update("INSERT INTO likes(post_id) VALUES(?)", postId);
+    }
+
+    @Override
+    public void removeLike(Long postId) {
+        jdbcTemplate.update(
+                "DELETE FROM likes WHERE id = (" +
+                        "SELECT id FROM likes WHERE post_id = ? ORDER BY id DESC LIMIT 1" +
+                        ")",
+                postId
         );
     }
 

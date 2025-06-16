@@ -1,6 +1,7 @@
 package com.example.blog.model;
 
 import lombok.*;
+import org.springframework.data.relational.core.sql.Like;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,10 +18,11 @@ public class Post {
     private String content;
     private int likesCount;
     private int commentsCount;
-    private List<String> textParts = new ArrayList<>();
-
     private List<Tag> tags;
     private List<Comment> comments;
+    private List<Like> likes;
+
+    private List<String> textParts = new ArrayList<>();
 
     public String getTextPreview() {
         return content.length() <= 300
