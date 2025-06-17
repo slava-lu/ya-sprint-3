@@ -4,6 +4,7 @@ import com.example.blog.model.Post;
 import com.example.blog.repository.PostRepository;
 import jakarta.servlet.ServletContext;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,6 +20,9 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class PostService {
+
+    @Value("${app.upload.dir}")
+    private String uploadDir;
 
     private final ServletContext servletContext;
 
@@ -39,17 +43,9 @@ public class PostService {
     public void deleteById(Long id) {
         postRepository.deleteById(id);
     }
-    public void incrementLikes(Long id) {
-        Post p = findById(id);
-        p.setLikesCount(p.getLikesCount() + 1);
-        update(p);
-    }
 
-    public void decrementLikes(Long id) {
-        Post p = findById(id);
-        p.setLikesCount(p.getLikesCount() - 1);
-        update(p);
-    }
+    public void addLike(Long postId) {postRepository.addLike(postId); }
+    public void removeLike(Long postId) {postRepository.removeLike(postId); }
 
     public void saveComment(Long postId, String text) {
         postRepository.saveComment(postId, text);
@@ -69,15 +65,17 @@ public class PostService {
             String ext = (original != null && original.lastIndexOf('.') >= 0)
                     ? original.substring(original.lastIndexOf('.'))
                     : ".jpg";
+
             try {
-                String realPath = servletContext.getRealPath("/images/");
+                // Use configured upload directory
+                Path dir = Paths.get(uploadDir).toAbsolutePath().normalize();
+                Files.createDirectories(dir); // Safe: creates if missing, skips if exists
 
-                Path dir = Paths.get(realPath);
-                Files.createDirectories(dir);
-
+                // Use post ID for filename
                 Path file = dir.resolve(post.getId() + ext);
                 Files.copy(imageFile.getInputStream(), file, StandardCopyOption.REPLACE_EXISTING);
 
+                // Save the URL as relative path, useful for serving via controller or static handler
                 post.setImageUrl("/images/" + file.getFileName());
                 postRepository.update(post);
             } catch (IOException e) {
